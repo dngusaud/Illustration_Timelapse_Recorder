@@ -9,6 +9,7 @@ import mss
 from pynput.mouse import Listener
 from screeninfo import get_monitors
 
+# Scaling for 3rd screen.
 res_scale = 1.5
 
 def on_click(x, y, button, pressed):
