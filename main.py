@@ -8,13 +8,17 @@ import threading
 import mss
 from pynput.mouse import Listener
 from screeninfo import get_monitors
+import tkinter as tk
+from tkinter import filedialog
 
 # Scaling for 3rd screen.
 res_scale = 1.5
 
+keep_record = True
+
 def on_click(x, y, button, pressed):
     if pressed:
-        print("Mouse clicked!")
+        print("Clicked!!")
         return True  # Return True if the mouse is clicked
     return False
 
@@ -27,8 +31,8 @@ def get_monitor_size(index = 0):
     monitor = get_monitors()[index]
     x = monitor.x
     y = monitor.y
-    width = round(monitor.width * 1.5)
-    height = round(monitor.height * 1.5)
+    width = round(monitor.width )
+    height = round(monitor.height)
 
     return x, y, width, height
 
@@ -68,31 +72,72 @@ def main(x, y, w, h):
     listener_thread.start()
 
     # Now you can add other code to run in parallel
-    print("Listener is running in the background...")
-    frame = take_shot(x, y, w, h)
-
+    #print("Listener is running in the background...")
+    take_shot(x, y, w, h)
     # Optionally, wait for listener to finish before ending the program
     listener_thread.join()
 
-    return frame
+def get_file_destination():
+    # Hide the root window
+    root = tk.Tk()
+    root.withdraw()
+
+    # Open a dialog to choose a directory
+    directory_path = filedialog.askdirectory(title="Choose a folder to save the file")
+
+    return directory_path
+
+def check_stop_recording():
+    response = input("Would you like to stop record? (y/n): ")
+    if response == "y":
+        return True
+    else:
+        return False
+    
+def on_button_click():
+    global keep_record
+    keep_record = False
+    print("Stop Recording!!")
+
+def run_GUI():
+    # Create the main window
+    root = tk.Tk()
+    root.title("Timelapse Recorder")
+
+    # Create a label widget
+    label = tk.Label(root, text="Welcome to Tkinter!")
+    label.pack(pady=10)
+
+    # Create a button widget
+    button = tk.Button(root, text="Click Me", command=on_button_click)
+    button.pack(pady=10)
+
+    # Run the GUI loop
+    root.mainloop()
 
 if __name__ == "__main__":
-    x,y,w,h = get_monitor_size(2)
 
-    title = input("Record Title: ")
+    thread1 = threading.Thread(target=run_GUI)
+    thread1.start()
+
+    path = get_file_destination()
+
+    x,y,w,h = get_monitor_size(0)
+
+    title = "test"#input("Record Title: ")
     date = datetime.now().strftime("%Y_%m_%d")
-    filename = get_unique_filename(f"{title}_{date}.mp4") 
+    filename = get_unique_filename(f"{path}/{title}_{date}.mp4") 
 
     # Set up codec and output video file
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     output = cv2.VideoWriter(filename, fourcc, 20.0, (w, h))
     
-    print("Recording...")
-    
-    try:
-        while True:
-            frame = main(x, y, w, h)
+    timer = 10
+    end_time = time.time() + timer
 
+    try:
+        while keep_record:#time.time() < end_time:
+            main(x, y, w, h)
         print("Recording complete!")
     except KeyboardInterrupt:
         print("Recording stopped by user.")
@@ -104,3 +149,7 @@ if __name__ == "__main__":
         print(f"Recording saved to {filename}")
         # Release the video writer object
         cv2.destroyAllWindows()
+    
+    thread1.join()
+
+
